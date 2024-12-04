@@ -102,7 +102,7 @@ void loop() {
     //Passe a travers tous les boutton
     for (int i = 0; i < taille; i++) {
       //voiR quel boutton est cliquer
-      if (digitalRead(buttonPins[i]) == HIGH) {
+      if (digitalRead(buttonPins[i]) == LOW) {
         delay(300);  // Debounce delay
         char button = buttonValues[i];
         processInput(button);
@@ -123,33 +123,41 @@ void determineAnswer()
 }
 
 void processInput(char button) {
-  if (button >= '0' && button <= '9') {
-    if (enteringFirstOperand) {
-      firstOperand = button - '0';
-      additionOrSubtraction();
-      writeString((unsigned char*)"Enter 1 operand:");
-      writeString((unsigned char*)button);
-      Serial.print("Button Pressed: ");
-      Serial.println(button);
-      enteringFirstOperand = false;
-      enteringSecondOperand = true;
-      clearScreen();
-    } else if (enteringSecondOperand) {
-      secondOperand = button - '0';
-      determineAnswer();
-      writeString((unsigned char*)"Enter Answer:");
-      writeString((unsigned char*)button);
-      Serial.print("Button Pressed: ");
-      Serial.println(button);
-      enteringSecondOperand = false;
-      enteringAnswer = true;
-      clearScreen();
+    if (button >= '0' && button <= '9') {
+        char buttonStr[2]; // Convert character to string
+        buttonStr[0] = button;
+        buttonStr[1] = '\0'; // Null terminator
 
-    } else if (enteringAnswer) {
-      answer = button - '0';
-      calculationComplete = true;
+        if (enteringFirstOperand) {
+            firstOperand = button - '0';
+            writeString((unsigned char*)"First Operand: ");
+            writeString((unsigned char*)buttonStr);
+            writeString((unsigned char*)"\nEnter 2nd Operand:");
+            delay(3000);
+            enteringFirstOperand = false;
+            enteringSecondOperand = true;
+            additionOrSubtraction();
+            clearScreen();
+
+        } else if (enteringSecondOperand) {
+            secondOperand = button - '0';
+            writeString((unsigned char*)"Second Operand: ");
+            writeString((unsigned char*)buttonStr);
+            writeString((unsigned char*)"\nEnter Answer:");
+            delay(3000);
+            enteringSecondOperand = false;
+            enteringAnswer = true;
+            determineAnswer();
+            clearScreen();
+            writeString((unsigned char*)"Second Operand: ");
+            writeString((unsigned char*)buttonStr);
+            writeString((unsigned char*)"\nEnter Answer:");
+        } else if (enteringAnswer) {
+            answer = button - '0';
+            delay(3000);
+            calculationComplete = true;
+        }
     }
-  }
 }
 
 void additionOrSubtraction() {
