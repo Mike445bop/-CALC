@@ -54,7 +54,6 @@ char userInput1[2];
 char operation = '\0';
 int firstOperand = 0, secondOperand = 0;
 bool enteringFirstOperand = true;  // Start with entering the first operand
-bool enteringSecondOperand = true;  // Initially, not entering the second operand
 bool enteringAnswer = false;
 // SPI Interface
 uint8_t _SCL; // 5
@@ -126,29 +125,24 @@ void processInput(char button) {
       // Build first operand
       firstOperand = firstOperand * 10 + (button - '0');
       additionOrSustraction(switch1);
-      userInput[userInputIndex1++] = button;
-      userInput[userInputIndex1] = '\0';
       writeString((unsigned char*)"Input: ");
       writeString((unsigned char*)userInput);
       delay(1000);
+      enteringFirstOperand = false
     } 
-    else if (enteringSecondOperand)
+    else
     {
       // Build second operand
-      
       secondOperand = secondOperand * 10 + (button - '0');
-      userInput[userInputIndex2++] = button;
-      userInput[userInputIndex2] = '\0';
       writeString((unsigned char*)"Input: ");
       writeString((unsigned char*)userInput);
       delay(1000);
+      enteringAnswer = true;
     }
     if(enteringAnswer)
     {
       //build the answer
-      
       enteringAnswer = enteringAnswer * 10 + (button - '0');
-      
       userInput1[userInputIndex3++] = button;
       userInput1[userInputIndex3] = '\0';
       writeString((unsigned char*)"answer : ");
