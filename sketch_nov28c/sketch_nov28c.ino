@@ -55,7 +55,7 @@ char operation = '\0';
 int firstOperand = 0, secondOperand = 0;
 bool enteringFirstOperand = true;  // Start with entering the first operand
 bool enteringSecondOperand = true;  // Initially, not entering the second operand
-bool enteringAnswer = true;
+bool enteringAnswer = false;
 // SPI Interface
 uint8_t _SCL; // 5
 uint8_t _SDI; // 4
@@ -83,17 +83,7 @@ void setup()
   for(int i=0; i < taille; i++)
   {
     pinMode(buttonPins[i], INPUT);
-  }  
-  // Uncomment desired interface. Currently configured for SPI.
-  
-
-  writeString((unsigned char*)"Newhaven Display----");
-  setCursor(0x40);
-  writeString((unsigned char*)" - Character LCD");
-  setCursor(0x14);
-  writeString((unsigned char*)" - Serial LCD");
-  setCursor(0x54);
-  writeString((unsigned char*)"  -> I2C, SPI, RS232");
+  }
   setBrightness(0x08);
   setContrast(0x28);
   putData_SPI(0x69);
@@ -110,11 +100,12 @@ void setup()
 void loop() {
   
   if (!calculationComplete) {
+    //Passe a travers tous les boutton 
     for (int i = 0; i < taille; i++) {
+      //voit quel boutton est cliquer
       if (digitalRead(buttonPins[i]) == HIGH) {
         delay(400); // Debounce delay
         char button = buttonValues[i];
-        
         processInput(button);
         updateDisplay();
         break;
@@ -152,7 +143,7 @@ void processInput(char button) {
       writeString((unsigned char*)userInput);
       delay(1000);
     }
-    else if(enteringAnswer)
+    if(enteringAnswer)
     {
       //build the answer
       
@@ -177,7 +168,7 @@ void processInput(char button) {
     clearScreen();
     writeString((unsigned char*)"Enter 2nd operand:");
     delay(500);
-    enteringSecondOperand = true;
+    enteringFirstOperand = false;
   } 
   
   else if (enteringSecondOperand && userInputIndex2 >= sizeof(userInput) - 1) 
@@ -189,12 +180,11 @@ void processInput(char button) {
     delay(5000); // Wait for 5 seconds
     setCursor(0x00);
     writeString((unsigned char*)"Enter 2nd operand:");
-    enteringAnswer = true;
+    enteringSecondOperand = false;
   }
   else if (enteringAnswer && userInputIndex2 >= sizeof(userInput) - 1)
   {
   // Finish second operand input
-  enteringSecondOperand = false;
   calculationComplete = true;
   }
 }
