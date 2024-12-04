@@ -54,8 +54,8 @@ char userInput1[2];
 char operation = '\0';
 int firstOperand = 0, secondOperand = 0;
 bool enteringFirstOperand = true;  // Start with entering the first operand
-bool enteringSecondOperand = false;  // Initially, not entering the second operand
-bool enteringAnswer = false;
+bool enteringSecondOperand = true;  // Initially, not entering the second operand
+bool enteringAnswer = true;
 // SPI Interface
 uint8_t _SCL; // 5
 uint8_t _SDI; // 4
