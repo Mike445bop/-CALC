@@ -101,9 +101,9 @@ void loop() {
   if (!calculationComplete) {
     //Passe a travers tous les boutton
     for (int i = 0; i < taille; i++) {
-      //voit quel boutton est cliquer
+      //voiR quel boutton est cliquer
       if (digitalRead(buttonPins[i]) == HIGH) {
-        delay(400);  // Debounce delay
+        delay(300);  // Debounce delay
         char button = buttonValues[i];
         processInput(button);
         updateDisplay();
@@ -111,9 +111,9 @@ void loop() {
       }
     }
   } else {
-    // Display result
+    //resultat
     displayResult();
-    delay(4000);  // Wait before resetting
+    delay(4000);  //delay avant de recommencer
     resetCalculator();
   }
 }
@@ -121,104 +121,68 @@ void determineAnswer()
 {
    goodAnswer = (operation == '+') ? (firstOperand + secondOperand) : (firstOperand - secondOperand);
 }
-void processInput(char button) 
-{
+
+void processInput(char button) {
   if (button >= '0' && button <= '9') {
-    if (enteringAnswer) {
-      if (goodAnswer > 9 && secondDigitAnswer) 
-      {
-        answer = (button - '0') + 10;
-        calculationComplete = true;
-      } 
-      else if(goodAnswer<10)
-      {  //build the answer
-        answer = button - '0';
-        writeString((unsigned char*)"answer : ");
-        writeString((unsigned char*)button);
-        delay(1000);
-        calculationComplete = true;
-      }
-      secondDigitAnswer = true;
-    }
-
     if (enteringFirstOperand) {
-      clearScreen();
       firstOperand = button - '0';
-      setCursor(0x14);
-      additionOrSustraction(switch1);
-      setCursor(0x40);
-      writeString((unsigned char*)"Input: ");
+      additionOrSubtraction();
+      writeString((unsigned char*)"Enter 1 operand:");
       writeString((unsigned char*)button);
-      delay(5000);
-      setCursor(0x00);
-      clearScreen();
-      writeString((unsigned char*)"Enter 2nd operand:");
-      delay(500);
+      Serial.print("Button Pressed: ");
+      Serial.println(button);
       enteringFirstOperand = false;
-    } else if (enteringSecondOperand){
+      enteringSecondOperand = true;
       clearScreen();
+    } else if (enteringSecondOperand) {
       secondOperand = button - '0';
-      setCursor(0x40);
-      writeString((unsigned char*)"Input: ");
-      writeString((unsigned char*)button);
-      delay(5000);
-      setCursor(0x00);
-      writeString((unsigned char*)"Enter Answer:");
-      enteringAnswer = true;
       determineAnswer();
+      writeString((unsigned char*)"Enter Answer:");
+      writeString((unsigned char*)button);
+      Serial.print("Button Pressed: ");
+      Serial.println(button);
       enteringSecondOperand = false;
+      enteringAnswer = true;
+      clearScreen();
+
+    } else if (enteringAnswer) {
+      answer = button - '0';
+      calculationComplete = true;
     }
   }
 }
-void additionOrSustraction(int switch1) {
-  int switchState = digitalRead(switch1);
-  Serial.print("Operation: add\n");
 
-  if (switchState == LOW) {
-    operation = '+';  // Set operation to addition
-    Serial.print("Operation: +");
-    setCursor(0x40);
-    writeString((unsigned char*)"op :");
-    write(operation);
+void additionOrSubtraction() {
+  if (digitalRead(switch1) == HIGH) {
+    operation = '+';
   } else {
-    operation = '-';  // Set operation to subtraction
-    Serial.print("Operation: -");
-    setCursor(0x40);
-    writeString((unsigned char*)"op :");
-    write(operation);
+    operation = '-';
   }
-}
-void updateDisplay() {
-  clearScreen();
-  setCursor(0x00);
 }
 
 void displayResult() {
-  delay(500);
   clearScreen();
-  setCursor(0x00);
   if (answer == goodAnswer) {
     writeString((unsigned char*)"Correct Answer!");
-    delay(100);
   } else {
-    writeString((unsigned char*)"Incorrect!");
-    setCursor(0x40);
-    writeString((unsigned char*)"Try Again.");
+    writeString((unsigned char*)"Incorrect! Try Again.");
   }
 }
 
 void resetCalculator() {
   firstOperand = 0;
   secondOperand = 0;
-  operation = '\0';
+  answer = 0;
   calculationComplete = false;
   enteringFirstOperand = true;
+  enteringSecondOperand = false;
   enteringAnswer = false;
-
   clearScreen();
-  writeString((unsigned char*)"Calculator Ready");
-  setCursor(0x40);
   writeString((unsigned char*)"Enter 1st operand:");
+}
+void updateDisplay() {
+  clearScreen();
+  setCursor(0x00);
 }
 /**
  * @brief Initialize selected IO ports for I2C.
