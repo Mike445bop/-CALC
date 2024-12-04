@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define STARTUP_DELAY 500
 
@@ -24,49 +25,50 @@ void updateDisplay();
 void displayResult();
 void resetCalculator();
 void additionOrSustraction(bool switch1);
+void determineAnswer();
 
-int button1 = 17;
-int button2 = 16;
-int button3 = 19;
-int button4 = 18;
-int button5 =  5;
-int button6 =  4;
-int button7 = 36;
-int button8 = 39;
-int button0 = 34;
+// Pins
+const int button1 = 17;
+const int button2 = 16;
+const int button3 = 19;
+const int button4 = 18;
+const int button5 = 5;
+const int button6 = 4;
+const int button7 = 36;
+const int button8 = 39;
+const int button0 = 34;
+const int switch1 = 26;
 
-const int buttonPins[] = { button1, button2, button3, button4, button5, button6, button7, button8, button0};
-int taille = sizeof(buttonPins)/sizeof(buttonPins[0]);
+const int buttonPins[] = { button1, button2, button3, button4, button5, button6, button7, button8, button0 };
+const char buttonValues[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
-const char buttonValues[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-//fonctionnement bouton pour calc
-//switch pour + ou -
-int switch1 = 26;
-int val;
-char plusOuMoins;
+int taille = sizeof(buttonPins) / sizeof(buttonPins[0]);
+int firstOperand = 0;
+int secondOperand = 0;
+int answer = 0;
+int goodAnswer = 0;
+// Bools
+bool enteringFirstOperand = true;
+bool enteringSecondOperand = true; 
+bool enteringAnswer = false;
 bool calculationComplete = false;
 bool isAnswerCorrect = false;
-int userInputIndex1 = 0;
-int userInputIndex2 = 0;
-int userInputIndex3 = 0;
-char userInput[2];
-char userInput1[2]; 
+bool secondDigitAnswer = false;
+// Char
+char plusOuMoins;
 char operation = '\0';
-int firstOperand = 0, secondOperand = 0;
-bool enteringFirstOperand = true;  // Start with entering the first operand
-bool enteringAnswer = false;
 // SPI Interface
-uint8_t _SCL; // 5
-uint8_t _SDI; // 4
-uint8_t _CS; // 3
+uint8_t _SCL;  // 5
+uint8_t _SDI;  // 4
+uint8_t _CS;   // 3
 
 // RS232 Interface
-uint8_t _TX; // 2
+uint8_t _TX;  // 2
 
 //I2C Interface
-uint8_t _SDA; // 4
+uint8_t _SDA;  // 4
 
-enum Interface{
+enum Interface {
   I2C,
   SPI,
   RS232
@@ -74,36 +76,34 @@ enum Interface{
 
 Interface _interface;
 
-void setup() 
-{ 
+void setup() {
   Serial.begin(115200);
   initLCD_SPI(22, 23, 21);
   pinMode(switch1, INPUT);
-  for(int i=0; i < taille; i++)
-  {
+  for (int i = 0; i < taille; i++) {
     pinMode(buttonPins[i], INPUT);
   }
   setBrightness(0x08);
   setContrast(0x28);
   putData_SPI(0x69);
-  delay(3000);
+  delay(10);
   clearScreen();
-    // Display initial message
+  // Display initial message
   setCursor(0x40);
   writeString((unsigned char*)"Calculator Ready");
-  setCursor(0x14); // Move to second row
-  writeString((unsigned char*)"Press buttons...");
+  setCursor(0x14);  // Move to second row
+  writeString((unsigned char*)"enter firstoperand...");
   delay(5000);
+  clearScreen();
 }
 
 void loop() {
-  
   if (!calculationComplete) {
-    //Passe a travers tous les boutton 
+    //Passe a travers tous les boutton
     for (int i = 0; i < taille; i++) {
       //voit quel boutton est cliquer
       if (digitalRead(buttonPins[i]) == HIGH) {
-        delay(400); // Debounce delay
+        delay(400);  // Debounce delay
         char button = buttonValues[i];
         processInput(button);
         updateDisplay();
@@ -113,118 +113,93 @@ void loop() {
   } else {
     // Display result
     displayResult();
-    delay(4000); // Wait before resetting
+    delay(4000);  // Wait before resetting
     resetCalculator();
   }
 }
+void determineAnswer()
+{
+   goodAnswer = (operation == '+') ? (firstOperand + secondOperand) : (firstOperand - secondOperand);
+}
+void processInput(char button) 
+{
+  if (button >= '0' && button <= '9') {
+    if (enteringAnswer) {
+      if (goodAnswer > 9 && secondDigitAnswer) 
+      {
+        answer = (button - '0') + 10;
+        calculationComplete = true;
+      } 
+      else if(goodAnswer<10)
+      {  //build the answer
+        answer = button - '0';
+        writeString((unsigned char*)"answer : ");
+        writeString((unsigned char*)button);
+        delay(1000);
+        calculationComplete = true;
+      }
+      secondDigitAnswer = true;
+    }
 
-void processInput(char button) {
-  if (button >= '0' && button <= '9') 
-  {
     if (enteringFirstOperand) {
-      // Build first operand
-      firstOperand = firstOperand * 10 + (button - '0');
+      clearScreen();
+      firstOperand = button - '0';
+      setCursor(0x14);
       additionOrSustraction(switch1);
+      setCursor(0x40);
       writeString((unsigned char*)"Input: ");
-      writeString((unsigned char*)userInput);
-      delay(1000);
-      enteringFirstOperand = false
-    } 
-    else
-    {
-      // Build second operand
-      secondOperand = secondOperand * 10 + (button - '0');
+      writeString((unsigned char*)button);
+      delay(5000);
+      setCursor(0x00);
+      clearScreen();
+      writeString((unsigned char*)"Enter 2nd operand:");
+      delay(500);
+      enteringFirstOperand = false;
+    } else if (enteringSecondOperand){
+      clearScreen();
+      secondOperand = button - '0';
+      setCursor(0x40);
       writeString((unsigned char*)"Input: ");
-      writeString((unsigned char*)userInput);
-      delay(1000);
+      writeString((unsigned char*)button);
+      delay(5000);
+      setCursor(0x00);
+      writeString((unsigned char*)"Enter Answer:");
       enteringAnswer = true;
+      determineAnswer();
+      enteringSecondOperand = false;
     }
-    if(enteringAnswer)
-    {
-      //build the answer
-      enteringAnswer = enteringAnswer * 10 + (button - '0');
-      userInput1[userInputIndex3++] = button;
-      userInput1[userInputIndex3] = '\0';
-      writeString((unsigned char*)"answer : ");
-      writeString((unsigned char*)userInput);
-      delay(1000);
-    }
-  }
-
-  if (enteringFirstOperand && userInputIndex1 >= sizeof(userInput) - 1) {
-    // Finish first operand input
-    enteringFirstOperand = false;
-    userInputIndex1 = 0; // Reset index for the second operand
-    userInput[0] = '\0';
-    userInput1[0];  // Clear the input buffer
-    delay(500); // Wait for 5 seconds
-    setCursor(0x00);
-    clearScreen();
-    writeString((unsigned char*)"Enter 2nd operand:");
-    delay(500);
-    enteringFirstOperand = false;
-  } 
-  
-  else if (enteringSecondOperand && userInputIndex2 >= sizeof(userInput) - 1) 
-  {
-    enteringSecondOperand = false;
-    userInputIndex2 = 0; // Reset index for the second operand
-    userInput[0] = '\0'; // Clear the input buffer
-    userInput1[0] = '\0';// Clear the input buffer
-    delay(5000); // Wait for 5 seconds
-    setCursor(0x00);
-    writeString((unsigned char*)"Enter 2nd operand:");
-    enteringSecondOperand = false;
-  }
-  else if (enteringAnswer && userInputIndex2 >= sizeof(userInput) - 1)
-  {
-  // Finish second operand input
-  calculationComplete = true;
   }
 }
-void additionOrSustraction(int switch1)
-{
+void additionOrSustraction(int switch1) {
   int switchState = digitalRead(switch1);
   Serial.print("Operation: add\n");
-    
-    if (switchState == LOW) {
-      operation = '+';  // Set operation to addition
-      Serial.print("Operation: +");
-      setCursor(0x40);
-      writeString((unsigned char*)"op :");
-      write(operation);
-    } 
-    else 
-    {
-      operation = '-';  // Set operation to subtraction
-      Serial.print("Operation: -");
-      setCursor(0x40);
-      writeString((unsigned char*)"op :");
-      write(operation);
-    }
-  
+
+  if (switchState == LOW) {
+    operation = '+';  // Set operation to addition
+    Serial.print("Operation: +");
+    setCursor(0x40);
+    writeString((unsigned char*)"op :");
+    write(operation);
+  } else {
+    operation = '-';  // Set operation to subtraction
+    Serial.print("Operation: -");
+    setCursor(0x40);
+    writeString((unsigned char*)"op :");
+    write(operation);
+  }
 }
 void updateDisplay() {
   clearScreen();
   setCursor(0x00);
-
-  
-
 }
 
 void displayResult() {
   delay(500);
   clearScreen();
-  int correctAnswer = (operation == '+') ? (firstOperand + secondOperand) : (firstOperand - secondOperand);
-
-  int userAnswer = atoi(userInput);
-
   setCursor(0x00);
-  if (userAnswer == correctAnswer) {
+  if (answer == goodAnswer) {
     writeString((unsigned char*)"Correct Answer!");
     delay(100);
-
-
   } else {
     writeString((unsigned char*)"Incorrect!");
     setCursor(0x40);
@@ -236,13 +211,8 @@ void resetCalculator() {
   firstOperand = 0;
   secondOperand = 0;
   operation = '\0';
-  userInputIndex1 = 0;
-  userInputIndex2 = 0;
-  userInput[0] = '\0';
-  userInput1[0] = '\0';
   calculationComplete = false;
   enteringFirstOperand = true;
-  enteringSecondOperand = false;
   enteringAnswer = false;
 
   clearScreen();
@@ -257,8 +227,7 @@ void resetCalculator() {
  * @param SDA Serial data pin assignment.
  * @return none
  */
- void initLCD_SPI(uint8_t SCL, uint8_t SDI, uint8_t CS)
-{
+void initLCD_SPI(uint8_t SCL, uint8_t SDI, uint8_t CS) {
   _interface = SPI;
 
   // Store pin assignments globally
@@ -279,95 +248,74 @@ void resetCalculator() {
   delay(STARTUP_DELAY);
   clearScreen();
 }
-void startCondition()
-{
+void startCondition() {
   clearSDA();
   clearSCL();
 }
-void stopCondition()
-{
+void stopCondition() {
   setSCL();
   setSDA();
 }
-void setSDA()
-{
+void setSDA() {
   digitalWrite(_SDA, HIGH);
-  
 }
-void clearSDA()
-{
+void clearSDA() {
   digitalWrite(_SDA, LOW);
-  
 }
-void setSCL()
-{
+void setSCL() {
   digitalWrite(_SCL, HIGH);
-  
 }
-void clearSCL()
-{
+void clearSCL() {
   digitalWrite(_SCL, LOW);
-
 }
-void setCS()
-{
+void setCS() {
   digitalWrite(_CS, HIGH);
   delay(1);
 }
-void write(uint8_t data)
-{
+void write(uint8_t data) {
   clearCS();
   putData_SPI(data);
   delayMicroseconds(10);
   setCS();
   delayMicroseconds(20);
 }
-void clearCS()
-{
+void clearCS() {
   digitalWrite(_CS, LOW);
   delay(1);
 }
-void writeString(unsigned char* data)
-{
+void writeString(unsigned char* data) {
   // Iterate through data until null terminator is found.
-  while(*data != '\0')
-  {
+  while (*data != '\0') {
     write(*data);
-    data++; // Increment pointer.
+    data++;  // Increment pointer.
   }
 }
-void putData_SPI(uint8_t data)
-{
+void putData_SPI(uint8_t data) {
   // Write data byte MSB first -> LSB last
-  for(int i = 7; i >= 0; i--)
-  {
+  for (int i = 7; i >= 0; i--) {
     clearSCL();
 
     digitalWrite(_SDI, (data >> i) & 0x01);
-    
+
     setSCL();
   }
 }
-void clearScreen()
-{
+void clearScreen() {
   write(0xFE);
   write(0x51);
   delay(2);
 }
-void setCursor(uint8_t position)
-{
+void setCursor(uint8_t position) {
   write(0xFE);
   write(0x45);
   write(position);
 }
-void setBrightness(uint8_t brightness)
-{
+void setBrightness(uint8_t brightness) {
   write(0xFE);
   write(0x53);
   write(brightness);
 }
-void setContrast(uint8_t contrast)
-{
+void setContrast(uint8_t contrast) {
   write(0xFE);
   write(0x52);
   write(contrast);
