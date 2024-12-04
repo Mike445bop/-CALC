@@ -133,6 +133,7 @@ void processInput(char button) {
   {
     if (enteringFirstOperand) {
       // Build first operand
+      // prendre la lettre et la mettre dans une string
       firstOperand = firstOperand * 10 + (button - '0');
       additionOrSustraction(switch1);
       userInput[userInputIndex1++] = button;
@@ -165,8 +166,16 @@ void processInput(char button) {
       delay(1000);
     }
   }
-
-  if (enteringFirstOperand && userInputIndex1 >= sizeof(userInput) - 1) {
+  if(btnEnter == HIGH)
+  {
+    //verifier quel operend
+    //if firstOperand
+      // parse la string en int
+    //else if secondOperand
+     // parse la string en int
+    // else calculer    
+  }
+  /*if (enteringFirstOperand && userInputIndex1 >= sizeof(userInput) - 1) {
     // Finish first operand input
     enteringFirstOperand = false;
     userInputIndex1 = 0; // Reset index for the second operand
@@ -196,7 +205,7 @@ void processInput(char button) {
   // Finish second operand input
   enteringSecondOperand = false;
   calculationComplete = true;
-  }
+  }*/
 }
 void additionOrSustraction(int switch1)
 {
